@@ -1,5 +1,7 @@
-// nib default config — every key here can be overridden in
-// $XDG_CONFIG_HOME/nib/nib.kdl with the exact same shape.
+// nib default config — pure vi-style modal controls, no Ctrl bindings.
+//
+// Every key here can be overridden in $XDG_CONFIG_HOME/nib/nib.kdl with the
+// exact same shape. You don't have to redeclare what you're happy with.
 
 behavior {
     tab_width 4
@@ -47,11 +49,14 @@ keymap "normal" {
         d "edit.delete_line"
     }
     u "edit.undo"
-    "<C-r>" "edit.redo"
+    U "edit.redo"
 
-    // file
-    "<C-s>" "buffer.save"
-    "<C-q>" "editor.quit"
+    // lifecycle (vi shortcut)
+    Z {
+        Z "editor.save_quit"
+    }
+
+    // safety
     "<Esc>" "mode.normal"
 }
 
@@ -64,11 +69,13 @@ keymap "insert" {
     "<Enter>" "edit.newline"
     "<Backspace>" "edit.backspace"
     "<Delete>" "edit.delete_forward"
-    "<C-s>" "buffer.save"
 }
 
 // --- Command-line mode ---
-// (placeholder — the cmdline UI itself is rendered by the editor.)
+// Printable keys fall through and append to the cmdline buffer; backspace
+// pops a character (or cancels if empty). These bindings handle the special
+// terminators.
 keymap "command" {
     "<Esc>" "mode.normal"
+    "<Enter>" "cmdline.execute"
 }

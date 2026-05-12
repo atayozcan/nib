@@ -1,5 +1,5 @@
-#[cfg(not(target_os = "linux"))]
-compile_error!("nib is Linux-only by design — see src/main.rs");
+#[cfg(not(all(target_os = "linux", target_arch = "x86_64")))]
+compile_error!("nib targets Linux on x86_64 only — see src/main.rs / .cargo/config.toml");
 
 mod buffer;
 mod cli;

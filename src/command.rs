@@ -17,6 +17,7 @@ pub(crate) struct Context<'a> {
     pub(crate) buffer: &'a mut Buffer,
     pub(crate) mode: &'a mut Mode,
     pub(crate) status: &'a mut String,
+    pub(crate) cmdline: &'a mut String,
     pub(crate) quit: &'a mut bool,
 }
 
@@ -91,7 +92,10 @@ impl Registry {
             c.buffer.insert_newline();
             *c.mode = Mode::Insert;
         });
-        self.put("mode.command", |c| *c.mode = Mode::Command);
+        self.put("mode.command", |c| {
+            c.cmdline.clear();
+            *c.mode = Mode::Command;
+        });
 
         // --- file / lifecycle ---
         self.put("buffer.save", |c| match c.buffer.save() {
@@ -105,5 +109,41 @@ impl Registry {
             }
         });
         self.put("editor.quit", |c| *c.quit = true);
+        self.put("editor.save_quit", |c| match c.buffer.save() {
+            Ok(()) => *c.quit = true,
+            Err(e) => *c.status = format!("save failed: {e}"),
+        });
+
+        // --- command-line mode ---
+        self.put("cmdline.execute", |c| {
+            let cmd = std::mem::take(c.cmdline);
+            *c.mode = Mode::Normal;
+            run_ex_command(c, cmd.trim());
+        });
+    }
+}
+
+/// Parser for the `:w` / `:q` / `:wq` / `:x` / `:q!` family. Tiny on purpose — anything
+/// more complex grows into its own module when the time comes.
+fn run_ex_command(c: &mut Context<'_>, cmd: &str) {
+    match cmd {
+        "" => {}
+        "w" => match c.buffer.save() {
+            Ok(()) => *c.status = format!("saved {}", c.buffer.path().display()),
+            Err(e) => *c.status = format!("save failed: {e}"),
+        },
+        "q" => {
+            if c.buffer.is_dirty() {
+                *c.status = String::from("no write since last change (use :q! to override)");
+            } else {
+                *c.quit = true;
+            }
+        }
+        "q!" => *c.quit = true,
+        "wq" | "x" => match c.buffer.save() {
+            Ok(()) => *c.quit = true,
+            Err(e) => *c.status = format!("save failed: {e}"),
+        },
+        other => *c.status = format!("unknown :command: {other:?}"),
     }
 }

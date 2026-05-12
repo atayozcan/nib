@@ -104,6 +104,7 @@ impl Editor {
                         buffer: &mut self.buffer,
                         mode: &mut self.mode,
                         status: &mut self.status,
+                        cmdline: &mut self.cmdline,
                         quit: &mut self.quit,
                     };
                     cmd(&mut ctx);
@@ -115,18 +116,28 @@ impl Editor {
                 // keep accumulating
             }
             Outcome::Fallback => {
-                // No binding. In insert mode, type the character. Otherwise drop.
+                // No binding. Mode-specific text fallthrough.
                 self.pending.clear();
-                if self.mode == Mode::Insert {
-                    if let Key::Char(c) = key {
-                        if mods.is_empty() || mods == KeyMod::SHIFT {
+                match self.mode {
+                    Mode::Insert => match key {
+                        Key::Char(c) if mods.is_empty() || mods == KeyMod::SHIFT => {
                             self.buffer.insert_char(c);
                         }
-                    } else if key == Key::Enter {
-                        self.buffer.insert_newline();
-                    } else if key == Key::Backspace {
-                        self.buffer.backspace();
-                    }
+                        Key::Enter => self.buffer.insert_newline(),
+                        Key::Backspace => self.buffer.backspace(),
+                        _ => {}
+                    },
+                    Mode::Command => match key {
+                        Key::Char(c) if mods.is_empty() || mods == KeyMod::SHIFT => {
+                            self.cmdline.push(c);
+                        }
+                        // Empty cmdline + backspace cancels back to normal.
+                        Key::Backspace if self.cmdline.pop().is_none() => {
+                            self.mode = Mode::Normal;
+                        }
+                        _ => {}
+                    },
+                    Mode::Normal => {}
                 }
             }
         }

@@ -1,0 +1,32 @@
+# Hardcoded build baseline for nib.
+#
+# Target the x86-64-v3 microarchitecture (Haswell, ~2013 and newer): AVX2,
+# BMI1/2, FMA, MOVBE, F16C. Tighter codegen, refuses to run on older CPUs.
+# That's accepted — nib is Linux x86_64 only (see src/main.rs cfg gate).
+#
+# ────────────────────────────────────────────────────────────────────────────
+# Heads-up on Cargo precedence:
+#
+# Cargo's rustflags sources are *mutually exclusive*. From the docs, the first
+# non-empty source wins; the rest are ignored:
+#
+#   1. CARGO_ENCODED_RUSTFLAGS env var
+#   2. RUSTFLAGS env var
+#   3. target.<triple>.rustflags  (this file)
+#   4. build.rustflags
+#
+# That means: if the shell has `RUSTFLAGS=...` exported for any reason — e.g.
+# a global preference like `RUSTFLAGS=-C link-arg=-fuse-ld=mold` — the values
+# below are silently ignored.
+#
+# If you want both your shell preferences AND the v3 baseline, the cleanest
+# fix is to move your shell RUSTFLAGS into your user-level cargo config at
+# ~/.cargo/config.toml under [build].rustflags. Per-project configs will then
+# layer correctly on top.
+# ────────────────────────────────────────────────────────────────────────────
+
+[target.x86_64-unknown-linux-gnu]
+rustflags = ["-C", "target-cpu=x86-64-v3"]
+
+[target.x86_64-unknown-linux-musl]
+rustflags = ["-C", "target-cpu=x86-64-v3"]
