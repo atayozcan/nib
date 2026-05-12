@@ -4,7 +4,7 @@ All notable changes to `nib`. Format follows [Keep a Changelog](https://keepacha
 loosely; this is a single-author hobby editor and the version numbers below describe
 *design generations* more than they describe semver.
 
-## Unreleased
+## [0.4.0] — 2026-05-12
 
 ### Added
 
@@ -15,11 +15,15 @@ loosely; this is a single-author hobby editor and the version numbers below desc
 - `.cargo/config.toml` gains a qemu `runner` for the aarch64 target so
   `cargo run / cargo test --target aarch64-...` work transparently on an
   x86_64 host.
+- README documents the cross-compile workflow from an x86_64 dev box to the
+  O6.
 
 ### Changed
 
 - `cfg` gate in `src/main.rs` now accepts `x86_64` or `aarch64`; other
   architectures still refuse to compile.
+- `Cargo.toml` `repository` URL points at the renamed GitHub repo
+  (`atayozcan/nib`) instead of the redirected `atayozcan/rusty-editor`.
 
 ## [0.3.0] — 2026-05-12
 
@@ -94,4 +98,5 @@ The original 2021 hobby project. Nightly-only (`#![feature(core_intrinsics)]`),
 terminal text editor that quit via `unsafe { breakpoint() }`. Did not work on stable
 Rust. See git history on the `main` branch's earliest commits for what was there.
 
-[0.3.0]: https://github.com/atayozcan/rusty-editor/releases/tag/v0.3.0
+[0.4.0]: https://github.com/atayozcan/nib/releases/tag/v0.4.0
+[0.3.0]: https://github.com/atayozcan/nib/releases/tag/v0.3.0
