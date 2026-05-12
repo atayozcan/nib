@@ -61,7 +61,11 @@ impl TerminalGuard {
         raw.special_codes[SpecialCodeIndex::VMIN] = 0;
         raw.special_codes[SpecialCodeIndex::VTIME] = 1;
 
-        termios::tcsetattr(stdin, OptionalActions::Flush, &raw).context("tcsetattr (raw)")?;
+        // TCSANOW, not TCSAFLUSH — the latter discards any input that arrived
+        // before the mode switch (type-ahead), which is the wrong default for
+        // an editor: a user mashing keys while the editor opens a slow file
+        // should still have those keystrokes register.
+        termios::tcsetattr(stdin, OptionalActions::Now, &raw).context("tcsetattr (raw)")?;
 
         let mut stdout = io::stdout().lock();
         stdout.write_all(ENTER_ALT_SCREEN)?;
