@@ -1,29 +1,40 @@
 [package]
-name = "rusty-editor"
-version = "0.2.0"
+name = "nib"
+version = "0.3.0"
 edition = "2024"
-rust-version = "1.86"
+rust-version = "1.87"
 authors = ["atayozcan"]
 license = "GPL-3.0-only"
-description = "A small terminal text editor written in Rust"
+description = "A minimal, highly-configurable modal terminal text editor (Linux)"
 repository = "https://github.com/atayozcan/rusty-editor"
 readme = "README.md"
-keywords = ["editor", "terminal", "tui"]
+keywords = ["editor", "terminal", "vi", "modal", "kdl"]
 categories = ["command-line-utilities", "text-editors"]
 
 [[bin]]
-name = "rusty-editor"
+name = "nib"
 path = "src/main.rs"
+
+# Linux-only by intent — see src/main.rs cfg-gate.
+[target.'cfg(not(target_os = "linux"))'.dependencies]
 
 [dependencies]
 anyhow = "1.0.102"
+bitflags = "2"
 clap = { version = "4.6", features = ["derive"] }
-crossterm = "0.29"
-ratatui = "0.30"
+crossbeam-channel = "0.5"
+etcetera = "0.11"
+kdl = "6.5"
 ropey = "1.6"
+rustix = { version = "1.1", features = ["termios", "stdio"] }
+signal-hook = "0.4"
 thiserror = "2.0"
 unicode-segmentation = "1.13"
 unicode-width = "0.2"
+vte = "0.15"
+
+[dev-dependencies]
+tempfile = "3"
 
 [profile.release]
 lto = "thin"
@@ -39,13 +50,9 @@ rust_2018_idioms = { level = "warn", priority = -1 }
 [lints.clippy]
 all = { level = "warn", priority = -1 }
 pedantic = { level = "warn", priority = -1 }
-# Carve-outs:
-# `nursery` is intentionally excluded — its lints frequently conflict
-# (e.g. redundant_pub_crate vs. rustc's unreachable_pub).
 module_name_repetitions = "allow"
 missing_errors_doc = "allow"
 missing_panics_doc = "allow"
 must_use_candidate = "allow"
-# Terminal coordinates are bounded to u16 by the terminal protocol itself;
-# the truncation lint just generates noise here.
 cast_possible_truncation = "allow"
+cast_sign_loss = "allow"

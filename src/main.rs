@@ -1,23 +1,24 @@
+#[cfg(not(target_os = "linux"))]
+compile_error!("nib is Linux-only by design — see src/main.rs");
+
 mod buffer;
 mod cli;
+mod command;
+mod config;
 mod editor;
-mod terminal;
-mod ui;
+mod keymap;
+mod mode;
+mod term;
 
 use anyhow::Result;
 use clap::Parser;
 
 use crate::cli::Cli;
+use crate::config::Config;
 use crate::editor::Editor;
-use crate::terminal::TerminalGuard;
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
-
-    let mut editor = Editor::open(cli.path)?;
-    let mut terminal = TerminalGuard::enter()?;
-    let outcome = editor.run(terminal.terminal());
-
-    drop(terminal);
-    outcome
+    let config = Config::load()?;
+    Editor::open(cli.path, config)?.run()
 }

@@ -1,0 +1,74 @@
+// nib default config — every key here can be overridden in
+// $XDG_CONFIG_HOME/nib/nib.kdl with the exact same shape.
+
+behavior {
+    tab_width 4
+    line_numbers #false
+    chord_timeout_ms 500
+}
+
+theme {
+    foreground "reset"
+    background "reset"
+    status_fg "#1e1e2e"
+    status_bg "#cdd6f4"
+    cmdline_fg "#cdd6f4"
+    cmdline_bg "reset"
+}
+
+// --- Normal mode ---
+keymap "normal" {
+    // motions
+    h "cursor.left"
+    j "cursor.down"
+    k "cursor.up"
+    l "cursor.right"
+    "0" "cursor.line_start"
+    "$" "cursor.line_end"
+    w "cursor.word_forward"
+    b "cursor.word_back"
+    G "buffer.goto_end"
+    g {
+        g "buffer.goto_start"
+        e "buffer.goto_end"
+    }
+
+    // mode transitions
+    i "mode.insert"
+    a "mode.insert_after"
+    I "mode.insert_line_start"
+    A "mode.insert_line_end"
+    o "mode.open_below"
+    ":" "mode.command"
+
+    // edits
+    x "edit.delete_forward"
+    d {
+        d "edit.delete_line"
+    }
+    u "edit.undo"
+    "<C-r>" "edit.redo"
+
+    // file
+    "<C-s>" "buffer.save"
+    "<C-q>" "editor.quit"
+    "<Esc>" "mode.normal"
+}
+
+// --- Insert mode ---
+// Most keys in insert mode are NOT bound here — they fall through to the
+// text-insertion default. Only the escape hatch and a few useful editing
+// keys are wired explicitly.
+keymap "insert" {
+    "<Esc>" "mode.normal"
+    "<Enter>" "edit.newline"
+    "<Backspace>" "edit.backspace"
+    "<Delete>" "edit.delete_forward"
+    "<C-s>" "buffer.save"
+}
+
+// --- Command-line mode ---
+// (placeholder — the cmdline UI itself is rendered by the editor.)
+keymap "command" {
+    "<Esc>" "mode.normal"
+}
