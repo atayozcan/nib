@@ -4,6 +4,23 @@ All notable changes to `nib`. Format follows [Keep a Changelog](https://keepacha
 loosely; this is a single-author hobby editor and the version numbers below describe
 *design generations* more than they describe semver.
 
+## [0.4.1] — 2026-05-13
+
+### Fixed
+
+- `TerminalGuard::enter` called `tcsetattr` with `TCSAFLUSH`, which silently
+  discards any input the user typed between `exec(2)` and the raw-mode switch
+  ("type-ahead"). The visible effect: open a large file, mash keys while it's
+  loading, and those keys vanish. Now uses `TCSANOW`, which keeps the buffered
+  input. (`TerminalGuard::Drop` still uses `TCSAFLUSH` — correct on exit,
+  since we want any half-typed garbage to *not* leak into the shell prompt.)
+
+  Surfaced while writing a load-time benchmark that scripted `nib FILE` with
+  an immediate `:q` over a PTY: it worked for small files but timed out for
+  larger ones, because nib's startup took longer than the harness's
+  write-bytes delay, putting the `:q\r` in the cooked-mode input queue
+  *before* the `TCSAFLUSH` ran, after which it was gone.
+
 ## [0.4.0] — 2026-05-12
 
 ### Added
@@ -98,5 +115,6 @@ The original 2021 hobby project. Nightly-only (`#![feature(core_intrinsics)]`),
 terminal text editor that quit via `unsafe { breakpoint() }`. Did not work on stable
 Rust. See git history on the `main` branch's earliest commits for what was there.
 
+[0.4.1]: https://github.com/atayozcan/nib/releases/tag/v0.4.1
 [0.4.0]: https://github.com/atayozcan/nib/releases/tag/v0.4.0
 [0.3.0]: https://github.com/atayozcan/nib/releases/tag/v0.3.0
