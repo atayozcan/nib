@@ -32,7 +32,6 @@ keymap "normal" {
     G "buffer.goto_end"
     g {
         g "buffer.goto_start"
-        e "buffer.goto_end"
     }
 
     // motions (arrow keys / nav cluster — same actions, ergonomic alias)
@@ -77,6 +76,7 @@ keymap "normal" {
 keymap "insert" {
     "<Esc>" "mode.normal"
     "<Enter>" "edit.newline"
+    "<Tab>" "edit.indent"
     "<Backspace>" "edit.backspace"
     "<Delete>" "edit.delete_forward"
     "<Left>" "cursor.left"

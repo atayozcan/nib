@@ -21,7 +21,7 @@ pub(crate) struct Context<'a> {
     pub(crate) quit: &'a mut bool,
 }
 
-pub(crate) type CommandFn = fn(&mut Context<'_>);
+type CommandFn = fn(&mut Context<'_>);
 
 #[derive(Debug, Default)]
 pub(crate) struct Registry {
@@ -61,6 +61,7 @@ impl Registry {
         self.put("edit.delete_forward", |c| c.buffer.delete_char_forward());
         self.put("edit.delete_line", |c| c.buffer.delete_line());
         self.put("edit.newline", |c| c.buffer.insert_newline());
+        self.put("edit.indent", |c| c.buffer.insert_char('\t'));
         self.put("edit.undo", |c| {
             if !c.buffer.undo() {
                 c.status.replace_range(.., "nothing to undo");

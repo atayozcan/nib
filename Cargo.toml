@@ -3,9 +3,9 @@ name = "nib"
 version = "0.3.0"
 edition = "2024"
 rust-version = "1.87"
-authors = ["atayozcan"]
+authors = ["Atay Özcan <atay@oezcan.me>"]
 license = "GPL-3.0-only"
-description = "A minimal, highly-configurable modal terminal text editor (Linux)"
+description = "A minimal, highly-configurable modal terminal text editor for Linux x86_64"
 repository = "https://github.com/atayozcan/rusty-editor"
 readme = "README.md"
 keywords = ["editor", "terminal", "vi", "modal", "kdl"]
@@ -15,26 +15,18 @@ categories = ["command-line-utilities", "text-editors"]
 name = "nib"
 path = "src/main.rs"
 
-# Linux-only by intent — see src/main.rs cfg-gate.
-[target.'cfg(not(target_os = "linux"))'.dependencies]
-
 [dependencies]
 anyhow = "1.0.102"
 bitflags = "2"
 clap = { version = "4.6", features = ["derive"] }
-crossbeam-channel = "0.5"
 etcetera = "0.11"
 kdl = "6.5"
 ropey = "1.6"
 rustix = { version = "1.1", features = ["termios", "stdio"] }
 signal-hook = "0.4"
-thiserror = "2.0"
 unicode-segmentation = "1.13"
 unicode-width = "0.2"
 vte = "0.15"
-
-[dev-dependencies]
-tempfile = "3"
 
 [profile.release]
 lto = "thin"

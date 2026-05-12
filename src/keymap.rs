@@ -84,12 +84,12 @@ impl KeyChord {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub(crate) struct KeyMap {
     root: TrieNode,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 struct TrieNode {
     children: HashMap<KeyChord, TrieNode>,
     command: Option<String>,

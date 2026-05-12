@@ -1,3 +1,18 @@
+//! `nib` — a minimal, highly-configurable modal terminal text editor.
+//!
+//! Linux `x86_64` only. Pure vi-style controls, KDL config, hand-rolled terminal
+//! layer on top of `vte` + `rustix` + `signal-hook`.
+//!
+//! Module layout:
+//! - [`buffer`]  — rope-backed text storage with grapheme cursor + transactional undo
+//! - [`mode`]    — `Mode` enum (Normal / Insert / Command)
+//! - [`keymap`]  — chord-trie keymap; `<C-x>`-style parser
+//! - [`command`] — named-command registry (`fn(&mut Context)`) including the `:` parser
+//! - [`config`]  — KDL loader, compiled-in defaults + user overlay
+//! - [`term`]    — terminal layer (raw mode, escape parsing, cell-diff renderer)
+//! - [`editor`]  — main loop: poll → dispatch → draw → flush
+//! - [`cli`]     — `clap` arg parser
+
 #[cfg(not(all(target_os = "linux", target_arch = "x86_64")))]
 compile_error!("nib targets Linux on x86_64 only — see src/main.rs / .cargo/config.toml");
 
@@ -19,6 +34,6 @@ use crate::editor::Editor;
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
-    let config = Config::load()?;
-    Editor::open(cli.path, config)?.run()
+    let (config, config_warning) = Config::load();
+    Editor::open(cli.path, config, config_warning)?.run()
 }

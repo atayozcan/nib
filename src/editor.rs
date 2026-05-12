@@ -26,12 +26,19 @@ pub(crate) struct Editor {
 }
 
 impl Editor {
-    pub(crate) fn open(path: PathBuf, config: Config) -> Result<Self> {
+    pub(crate) fn open(
+        path: PathBuf,
+        config: Config,
+        config_warning: Option<String>,
+    ) -> Result<Self> {
         let buffer = Buffer::open(path)?;
+        // If the user's config failed to apply, surface that on first frame
+        // instead of the stock hint — otherwise the warning is invisible.
+        let status = config_warning.unwrap_or_else(|| String::from(":w save · :q quit · i insert"));
         Ok(Self {
             buffer,
             mode: Mode::Normal,
-            status: String::from("-- NORMAL --   :q to quit  :w to save"),
+            status,
             cmdline: String::new(),
             quit: false,
             config,

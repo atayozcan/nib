@@ -106,9 +106,27 @@ impl Buffer {
     }
 
     pub(crate) fn save(&mut self) -> Result<()> {
-        let tmp = self.path.with_extension("nib~");
-        fs::write(&tmp, self.rope.to_string())
+        // Suffix with `.nib~` rather than `.with_extension("nib~")` so that for
+        // a path like `foo.tar.gz` we get `foo.tar.gz.nib~` instead of
+        // `foo.tar.nib~`, which would clobber a different file with that name.
+        let mut tmp_name = self.path.file_name().map_or_else(
+            || std::ffi::OsString::from("nib"),
+            std::ffi::OsStr::to_os_string,
+        );
+        tmp_name.push(".nib~");
+        let tmp = self.path.with_file_name(&tmp_name);
+
+        let mut file = fs::File::create(&tmp)
+            .with_context(|| format!("failed to create {}", tmp.display()))?;
+        std::io::Write::write_all(&mut file, self.rope.to_string().as_bytes())
             .with_context(|| format!("failed to write {}", tmp.display()))?;
+        // Force the bytes to disk before swapping in the new name so that a
+        // power cut between write and rename doesn't leave the user with an
+        // empty file.
+        file.sync_all()
+            .with_context(|| format!("failed to fsync {}", tmp.display()))?;
+        drop(file);
+
         fs::rename(&tmp, &self.path).with_context(|| {
             format!(
                 "failed to rename {} -> {}",
@@ -147,7 +165,10 @@ impl Buffer {
     }
 
     fn line_col_to_char_idx(&self, line: usize, col: usize) -> usize {
-        let line_start = self.rope.line_to_char(line.min(self.rope.len_lines()));
+        // `len_lines()` returns the count, so the last valid index is one less.
+        // Without this clamp, `line_to_char(len_lines())` panics inside ropey.
+        let clamped = line.min(self.rope.len_lines().saturating_sub(1));
+        let line_start = self.rope.line_to_char(clamped);
         let line_text = self.line(line);
         let byte_offset: usize = line_text.graphemes(true).take(col).map(str::len).sum();
         let char_offset = line_text[..byte_offset.min(line_text.len())]
@@ -320,11 +341,17 @@ impl Buffer {
 
     pub(crate) fn move_word_forward(&mut self) {
         let line = self.line(self.cursor.line);
-        for w in line.unicode_words() {
-            let pos = line.find(w).unwrap_or(0);
-            let end = pos + w.chars().count();
-            if end > self.cursor.col {
-                self.cursor.col = end.min(self.line_grapheme_count(self.cursor.line));
+        // `split_word_bound_indices` gives us byte offsets without re-searching
+        // the string, which avoids the `"foo foo"` aliasing bug that `find()`
+        // had — and tells us word vs non-word at each segment.
+        for (byte_off, segment) in line.split_word_bound_indices() {
+            if !is_word_segment(segment) {
+                continue;
+            }
+            let start_col = byte_prefix_to_grapheme_col(&line, byte_off);
+            let end_col = start_col + segment.graphemes(true).count();
+            if end_col > self.cursor.col {
+                self.cursor.col = end_col.min(self.line_grapheme_count(self.cursor.line));
                 return;
             }
         }
@@ -347,12 +374,15 @@ impl Buffer {
         }
         let line = self.line(self.cursor.line);
         let mut last_start = 0usize;
-        for w in line.unicode_words() {
-            let pos = line.find(w).unwrap_or(0);
-            if pos >= self.cursor.col {
+        for (byte_off, segment) in line.split_word_bound_indices() {
+            if !is_word_segment(segment) {
+                continue;
+            }
+            let start_col = byte_prefix_to_grapheme_col(&line, byte_off);
+            if start_col >= self.cursor.col {
                 break;
             }
-            last_start = pos;
+            last_start = start_col;
         }
         self.cursor.col = last_start;
     }
@@ -365,6 +395,19 @@ impl Buffer {
         self.cursor.line = self.line_count().saturating_sub(1);
         self.cursor.col = self.line_grapheme_count(self.cursor.line);
     }
+}
+
+/// True when a word-bound segment is a word (as opposed to whitespace or
+/// punctuation). `unicode-segmentation` exposes this via the first char being
+/// alphanumeric; that's also how `unicode_words` filters internally.
+fn is_word_segment(s: &str) -> bool {
+    s.chars().next().is_some_and(char::is_alphanumeric)
+}
+
+/// Convert a byte offset within a line into a grapheme-column index.
+fn byte_prefix_to_grapheme_col(line: &str, byte_off: usize) -> usize {
+    let prefix = &line[..byte_off.min(line.len())];
+    prefix.graphemes(true).count()
 }
 
 #[cfg(test)]
@@ -440,6 +483,24 @@ mod tests {
         assert_eq!(b.cursor.col, 5);
         b.move_word_forward();
         assert_eq!(b.cursor.col, 11);
+    }
+
+    #[test]
+    fn word_motion_handles_repeats() {
+        // Regression: an earlier impl used `line.find(w)`, which always returned
+        // the *first* occurrence of a word — so on "foo foo" the cursor inside
+        // word 2 would jump backward to the start of word 1.
+        let mut b = buf("foo foo bar");
+        b.cursor.col = 5; // inside the second "foo"
+        b.move_word_forward();
+        assert_eq!(b.cursor.col, 7, "should land at end of second 'foo'");
+
+        b.cursor.col = 5;
+        b.move_word_back();
+        assert_eq!(
+            b.cursor.col, 4,
+            "should land at start of second 'foo', not first"
+        );
     }
 
     #[test]

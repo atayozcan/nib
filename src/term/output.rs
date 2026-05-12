@@ -49,7 +49,8 @@ pub(crate) struct Renderer {
     size: Size,
     front: Vec<RenderCell>,
     back: Vec<RenderCell>,
-    /// Cursor position (row, col) the application wants displayed after this frame.
+    /// Cursor position the application wants displayed after this frame, as
+    /// `(x_col, y_row)` to match how callers naturally think of it.
     cursor: (u16, u16),
 }
 
@@ -129,7 +130,7 @@ impl Renderer {
     }
 
     pub(crate) fn set_cursor(&mut self, x: u16, y: u16) {
-        self.cursor = (y, x);
+        self.cursor = (x, y);
     }
 
     /// Emit the diff between `back` and `front` to stdout, then swap.
@@ -168,7 +169,7 @@ impl Renderer {
 
         // Reset SGR + position cursor + show.
         out.extend_from_slice(b"\x1b[0m");
-        let (cy, cx) = self.cursor;
+        let (cx, cy) = self.cursor;
         if cx < self.size.cols && cy < self.size.rows {
             write_move(&mut out, cy, cx);
             out.extend_from_slice(b"\x1b[?25h");

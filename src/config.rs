@@ -8,6 +8,7 @@
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
+use std::str::FromStr;
 
 use anyhow::{Context, Result, bail};
 use etcetera::{AppStrategy, AppStrategyArgs, choose_app_strategy};
@@ -59,7 +60,7 @@ impl Default for Behavior {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct Config {
     pub(crate) theme: Theme,
     pub(crate) behavior: Behavior,
@@ -83,17 +84,41 @@ impl Default for Config {
 
 impl Config {
     /// Load the compiled-in defaults, then layer the user's `nib.kdl` on top if present.
-    pub(crate) fn load() -> Result<Self> {
+    ///
+    /// The defaults *must* parse — a failure here is a build-time bug and is propagated.
+    /// A broken *user* config is intentionally soft-failed: the editor starts with
+    /// defaults, and the caller is handed a warning string to surface in the UI so the
+    /// user actually notices instead of being locked out of their files.
+    pub(crate) fn load() -> (Self, Option<String>) {
         let mut cfg = Self::default();
-        cfg.apply_kdl(DEFAULT_CONFIG, "nib.default.kdl")?;
-        if let Some(path) = user_config_path() {
-            if path.exists() {
-                let text = fs::read_to_string(&path)
-                    .with_context(|| format!("reading {}", path.display()))?;
-                cfg.apply_kdl(&text, &path.display().to_string())?;
-            }
+        // Defaults are compiled in; any error here is on us, not the user.
+        cfg.apply_kdl(DEFAULT_CONFIG, "nib.default.kdl")
+            .expect("built-in default config must parse");
+
+        let Some(path) = user_config_path() else {
+            return (cfg, None);
+        };
+        if !path.exists() {
+            return (cfg, None);
         }
-        Ok(cfg)
+
+        let text = match fs::read_to_string(&path) {
+            Ok(t) => t,
+            Err(e) => {
+                return (
+                    cfg,
+                    Some(format!("config: {} unreadable: {e}", path.display())),
+                );
+            }
+        };
+
+        // Apply on a temporary clone so a parse error halfway through doesn't leave the
+        // config in a partially-overridden state.
+        let mut staged = cfg.clone();
+        match staged.apply_kdl(&text, &path.display().to_string()) {
+            Ok(()) => (staged, None),
+            Err(e) => (cfg, Some(format!("config: {e:#}"))),
+        }
     }
 
     fn apply_kdl(&mut self, text: &str, source: &str) -> Result<()> {
@@ -155,8 +180,8 @@ impl Config {
 
     fn apply_keymap(&mut self, node: &KdlNode) -> Result<()> {
         let mode_name = first_string(node)?;
-        let mode = Mode::from_str(mode_name)
-            .with_context(|| format!("unknown mode {mode_name:?} in keymap"))?;
+        let mode =
+            Mode::from_str(mode_name).with_context(|| format!("in keymap node {mode_name:?}"))?;
         let km = self.keymaps.entry(mode).or_default();
         if let Some(children) = node.children() {
             walk_keymap_block(km, &mut Vec::new(), children)?;

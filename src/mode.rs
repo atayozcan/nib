@@ -1,4 +1,5 @@
 use std::fmt;
+use std::str::FromStr;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) enum Mode {
@@ -17,13 +18,17 @@ impl Mode {
             Self::Command => "command",
         }
     }
+}
 
-    pub(crate) fn from_str(s: &str) -> Option<Self> {
+impl FromStr for Mode {
+    type Err = UnknownMode;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "normal" => Some(Self::Normal),
-            "insert" => Some(Self::Insert),
-            "command" => Some(Self::Command),
-            _ => None,
+            "normal" => Ok(Self::Normal),
+            "insert" => Ok(Self::Insert),
+            "command" => Ok(Self::Command),
+            _ => Err(UnknownMode(s.to_string())),
         }
     }
 }
@@ -33,3 +38,14 @@ impl fmt::Display for Mode {
         f.write_str(self.as_str())
     }
 }
+
+#[derive(Debug, Clone)]
+pub(crate) struct UnknownMode(pub(crate) String);
+
+impl fmt::Display for UnknownMode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "unknown mode {:?}", self.0)
+    }
+}
+
+impl std::error::Error for UnknownMode {}

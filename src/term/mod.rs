@@ -35,7 +35,6 @@ const RESET_STYLE: &[u8] = b"\x1b[0m";
 #[derive(Debug)]
 pub(crate) struct TerminalGuard {
     original: Termios,
-    armed: bool,
 }
 
 impl TerminalGuard {
@@ -70,18 +69,12 @@ impl TerminalGuard {
         stdout.write_all(ENABLE_BRACKETED_PASTE)?;
         stdout.flush()?;
 
-        Ok(Self {
-            original,
-            armed: true,
-        })
+        Ok(Self { original })
     }
 }
 
 impl Drop for TerminalGuard {
     fn drop(&mut self) {
-        if !self.armed {
-            return;
-        }
         let mut stdout = io::stdout().lock();
         let _ = stdout.write_all(DISABLE_BRACKETED_PASTE);
         let _ = stdout.write_all(RESET_STYLE);

@@ -1,0 +1,115 @@
+// nib user-config example.
+//
+// Copy this file to `$XDG_CONFIG_HOME/nib/nib.kdl` (typically
+// `~/.config/nib/nib.kdl`) and trim it down to only what you want to change.
+//
+// nib *layers* this on top of the compiled-in defaults
+// (see `assets/nib.default.kdl`) — if a setting isn't here, the default
+// applies. You don't have to copy the whole file to override one binding.
+
+// =====================================================================
+// behavior — editor knobs
+// =====================================================================
+behavior {
+    // Display width for a literal Tab character. Doesn't affect what `Tab`
+    // inserts (it inserts a literal `\t`); only how that `\t` is rendered.
+    tab_width 4
+
+    // Show absolute line numbers in the left gutter. Not yet implemented —
+    // declaring it has no effect in v0.3.0.
+    line_numbers #false
+
+    // Max gap, in milliseconds, between the keys of a chord before the
+    // pending prefix is dropped. Lower = snappier rejection of typos, higher
+    // = more room for slow typists.
+    chord_timeout_ms 500
+}
+
+// =====================================================================
+// theme — colours
+// =====================================================================
+// Each value is either:
+//   - a 24-bit hex colour, e.g. "#cdd6f4"
+//   - an indexed terminal colour, e.g. "idx:208" (0..=255)
+//   - the literal "reset" to use the terminal's default
+theme {
+    foreground "reset"
+    background "reset"
+
+    // Statusline (bottom-but-one row). Convention is reversed-style: bg light, fg dark.
+    status_fg  "#1e1e2e"
+    status_bg  "#cdd6f4"
+
+    // Cmdline / message line (the very bottom row).
+    cmdline_fg "#cdd6f4"
+    cmdline_bg "reset"
+}
+
+// =====================================================================
+// keymap — pure vi-style by default. Everything is rebindable.
+// =====================================================================
+//
+// Chord syntax:
+//   bare char   →  "h", ":", "$"
+//   named key   →  "<Esc>", "<Enter>", "<Tab>", "<Backspace>", "<Delete>",
+//                  "<Up>", "<Down>", "<Left>", "<Right>",
+//                  "<Home>", "<End>", "<PageUp>", "<PageDown>",
+//                  "<Insert>", "<Space>", "<F1>".."<F12>"
+//   modifiers   →  "<C-x>", "<S-Tab>", "<A-j>", "<C-S-Right>"
+//                  (C = Ctrl, S = Shift, A = Alt — M is alias for Alt)
+//
+// Nested blocks define chord prefixes (`gg`, `<Space>ff`):
+//
+//     keymap "normal" {
+//         <Space> {
+//             f { f "open_file_picker" }
+//         }
+//     }
+//
+// Bindable command names — see src/command.rs for the live list:
+//
+//   cursor.left  cursor.right  cursor.up  cursor.down
+//   cursor.line_start  cursor.line_end
+//   cursor.word_forward  cursor.word_back
+//   buffer.goto_start  buffer.goto_end
+//   buffer.save
+//   edit.backspace  edit.delete_forward  edit.delete_line
+//   edit.newline  edit.indent
+//   edit.undo  edit.redo
+//   mode.normal  mode.insert  mode.insert_after
+//   mode.insert_line_start  mode.insert_line_end  mode.open_below
+//   mode.command
+//   cmdline.execute
+//   editor.quit  editor.save_quit
+
+keymap "normal" {
+    // ---- Examples — uncomment and adjust to taste ----
+
+    // Colemak-style remap of jk → ne:
+    // n "cursor.down"
+    // e "cursor.up"
+
+    // Space-as-leader for frequent ops:
+    // "<Space>" {
+    //     w "buffer.save"
+    //     q "editor.quit"
+    //     d "edit.delete_line"
+    // }
+
+    // Page-step bindings, since the defaults don't bind PgUp/PgDn in normal:
+    // "<PageUp>"   "cursor.up"      // (pretend; real "scroll half-page up" lands later)
+    // "<PageDown>" "cursor.down"
+}
+
+keymap "insert" {
+    // Arrow keys are already bound in defaults — declare extras here.
+    // Example: a soft tab that just inserts two spaces is awaiting
+    // `behavior.expand_tabs` support; for now you'd have to pre-bind
+    // <Tab> to a custom command after that lands.
+}
+
+keymap "command" {
+    // Anything you'd want while typing a `:` command goes here. The default
+    // config wires <Enter> to cmdline.execute and <Esc> to mode.normal —
+    // both required, but you can override if you want different keys.
+}
