@@ -1,6 +1,6 @@
 # nib
 
-> A minimal, highly-configurable modal terminal text editor for Linux x86_64.
+> A minimal, highly-configurable modal terminal text editor for Linux on x86_64 or aarch64.
 
 `nib` is small like `vi`, configurable like `kak`, and picks exactly two fights:
 
@@ -21,13 +21,32 @@ cargo run --release -- /path/to/file
 ```
 
 Requirements:
-- Linux on x86_64
+- Linux
 - Rust **1.87** or newer (stable)
-- A CPU at the **x86-64-v3** microarchitecture level or above (Haswell, 2013+)
+- One of:
+  - **x86_64** at the **x86-64-v3** microarchitecture level (Haswell, 2013+)
+  - **aarch64** at the **Armv9.2-A / `cortex-a520`** baseline (Radxa Orion O6
+    and any other CD8180-class board; A720-only big-core boards also fine)
 
 If a built binary won't execute with "Illegal instruction", your CPU is older
-than v3. See [`.cargo/config.toml`](.cargo/config.toml) — the v3 baseline is
-committed but locally overridable.
+than the configured baseline. See [`.cargo/config.toml`](.cargo/config.toml) —
+the baselines are committed but locally overridable.
+
+### Cross-compiling x86_64 → aarch64 (e.g. on a dev box, targeting the O6)
+
+```sh
+rustup target add aarch64-unknown-linux-gnu
+sudo pacman -S aarch64-linux-gnu-gcc qemu-user-static   # Arch/Manjaro
+# or:  sudo apt install gcc-aarch64-linux-gnu qemu-user-static
+env -u RUSTFLAGS cargo build --release --target aarch64-unknown-linux-gnu
+
+# Smoke-test on the dev box without ARM hardware:
+cargo test --target aarch64-unknown-linux-gnu   # runs the tests under qemu
+```
+
+The `.cargo/config.toml` wires the linker, the `cortex-a520` codegen baseline,
+and a qemu `runner` so `cargo run --target aarch64-...` and `cargo test
+--target aarch64-...` work transparently on an x86_64 host.
 
 ### A note on the v3 baseline + shell `RUSTFLAGS`
 

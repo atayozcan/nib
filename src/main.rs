@@ -13,8 +13,14 @@
 //! - [`editor`]  — main loop: poll → dispatch → draw → flush
 //! - [`cli`]     — `clap` arg parser
 
-#[cfg(not(all(target_os = "linux", target_arch = "x86_64")))]
-compile_error!("nib targets Linux on x86_64 only — see src/main.rs / .cargo/config.toml");
+#[cfg(not(all(
+    target_os = "linux",
+    any(target_arch = "x86_64", target_arch = "aarch64")
+)))]
+compile_error!(
+    "nib targets Linux on x86_64 (x86-64-v3 baseline) or aarch64 (Armv9-A / cortex-a520 baseline) only \
+     — see src/main.rs / .cargo/config.toml"
+);
 
 mod buffer;
 mod cli;

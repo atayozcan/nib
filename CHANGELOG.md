@@ -4,6 +4,23 @@ All notable changes to `nib`. Format follows [Keep a Changelog](https://keepacha
 loosely; this is a single-author hobby editor and the version numbers below describe
 *design generations* more than they describe semver.
 
+## Unreleased
+
+### Added
+
+- **aarch64-unknown-linux-gnu** as a supported target, with a `cortex-a520`
+  codegen baseline tuned for the Radxa Orion O6 / Cix CD8180 (Armv9.2-A,
+  A720+A520 big.LITTLE). Same source, no `unsafe`, all 12 tests pass on
+  emulated Armv9-A via `qemu-aarch64-static -cpu max`.
+- `.cargo/config.toml` gains a qemu `runner` for the aarch64 target so
+  `cargo run / cargo test --target aarch64-...` work transparently on an
+  x86_64 host.
+
+### Changed
+
+- `cfg` gate in `src/main.rs` now accepts `x86_64` or `aarch64`; other
+  architectures still refuse to compile.
+
 ## [0.3.0] — 2026-05-12
 
 First release worth calling that. A from-scratch rewrite of the v0.2 codebase

@@ -1,8 +1,4 @@
-# Hardcoded build baseline for nib.
-#
-# Target the x86-64-v3 microarchitecture (Haswell, ~2013 and newer): AVX2,
-# BMI1/2, FMA, MOVBE, F16C. Tighter codegen, refuses to run on older CPUs.
-# That's accepted — nib is Linux x86_64 only (see src/main.rs cfg gate).
+# Hardcoded build baselines for nib.
 #
 # ────────────────────────────────────────────────────────────────────────────
 # Heads-up on Cargo precedence:
@@ -19,14 +15,48 @@
 # a global preference like `RUSTFLAGS=-C link-arg=-fuse-ld=mold` — the values
 # below are silently ignored.
 #
-# If you want both your shell preferences AND the v3 baseline, the cleanest
-# fix is to move your shell RUSTFLAGS into your user-level cargo config at
+# If you want both your shell preferences AND the per-target baselines, move
+# your shell RUSTFLAGS into your user-level cargo config at
 # ~/.cargo/config.toml under [build].rustflags. Per-project configs will then
 # layer correctly on top.
 # ────────────────────────────────────────────────────────────────────────────
 
+# ---- x86_64 Linux ----
+# x86-64-v3 microarchitecture (Haswell, ~2013 and newer): AVX2, BMI1/2, FMA,
+# MOVBE, F16C. Tighter codegen, refuses to run on older CPUs.
 [target.x86_64-unknown-linux-gnu]
 rustflags = ["-C", "target-cpu=x86-64-v3"]
 
 [target.x86_64-unknown-linux-musl]
 rustflags = ["-C", "target-cpu=x86-64-v3"]
+
+# ---- aarch64 Linux (Radxa Orion O6 / Cix CD8180) ----
+# The Orion O6 is a tri-cluster DynamIQ Armv9.2-A SoC:
+#   4x Cortex-A720 "big"    @ 2.8 GHz
+#   4x Cortex-A720 "medium" @ 2.4 GHz
+#   4x Cortex-A520 "LITTLE" @ 1.8 GHz
+#
+# We target the LITTLE core (`cortex-a520`) as the codegen baseline. Both core
+# types implement the same Armv9.2-A ISA (SVE2, BF16, I8MM, DotProd, FP16,
+# LSE, RCPC/RCPC2, AES/SHA crypto, PAuth+BTI, MTE), so there is no SIGILL
+# risk when the kernel migrates a thread between clusters. Targeting the
+# LITTLE is the right move because LLVM's scheduling model would otherwise
+# pessimize the four A520 cores; the big-core ISA features are already present.
+#
+# `target-cpu=cortex-a520` implies the full Armv9.2-A feature set — do not
+# restate it via `target-feature=+sve2,+bf16,...`.
+#
+# Cross-compile from x86_64 host:
+#   rustup target add aarch64-unknown-linux-gnu
+#   sudo pacman -S aarch64-linux-gnu-gcc           # Arch / Manjaro
+#   cargo build --release --target aarch64-unknown-linux-gnu
+# Smoke-test without ARM hardware (qemu-user-static):
+#   qemu-aarch64-static target/aarch64-unknown-linux-gnu/release/nib --version
+[target.aarch64-unknown-linux-gnu]
+linker = "aarch64-linux-gnu-gcc"
+rustflags = ["-C", "target-cpu=cortex-a520"]
+# Lets `cargo run --target aarch64-...` and `cargo test --target aarch64-...`
+# transparently execute the cross-compiled binary under qemu user-mode on an
+# x86_64 host. `-cpu max` exposes the full Armv9-A feature set so SVE2/BF16/etc
+# don't fault. Requires `qemu-user-static`.
+runner = "qemu-aarch64-static -L /usr/aarch64-linux-gnu -cpu max"
