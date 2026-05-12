@@ -1,14 +1,51 @@
-cargo-features = ["edition2021"]
-
 [package]
-name = "texteditor"
-version = "0.1.0"
+name = "rusty-editor"
+version = "0.2.0"
+edition = "2024"
+rust-version = "1.86"
 authors = ["atayozcan"]
-edition = "2021"
+license = "GPL-3.0-only"
+description = "A small terminal text editor written in Rust"
+repository = "https://github.com/atayozcan/rusty-editor"
+readme = "README.md"
+keywords = ["editor", "terminal", "tui"]
+categories = ["command-line-utilities", "text-editors"]
+
+[[bin]]
+name = "rusty-editor"
+path = "src/main.rs"
 
 [dependencies]
-unicode-width = "*"
-structopt = "*"
-termion = "*"
-rand = "*"
-tui = "*"
+anyhow = "1.0.102"
+clap = { version = "4.6", features = ["derive"] }
+crossterm = "0.29"
+ratatui = "0.30"
+ropey = "1.6"
+thiserror = "2.0"
+unicode-segmentation = "1.13"
+unicode-width = "0.2"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = "symbols"
+
+[lints.rust]
+unsafe_code = "forbid"
+missing_debug_implementations = "warn"
+unreachable_pub = "warn"
+rust_2018_idioms = { level = "warn", priority = -1 }
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+# Carve-outs:
+# `nursery` is intentionally excluded — its lints frequently conflict
+# (e.g. redundant_pub_crate vs. rustc's unreachable_pub).
+module_name_repetitions = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+must_use_candidate = "allow"
+# Terminal coordinates are bounded to u16 by the terminal protocol itself;
+# the truncation lint just generates noise here.
+cast_possible_truncation = "allow"
