@@ -20,7 +20,7 @@ theme {
 
 // --- Normal mode ---
 keymap "normal" {
-    // motions
+    // motions (hjkl)
     h "cursor.left"
     j "cursor.down"
     k "cursor.up"
@@ -35,6 +35,14 @@ keymap "normal" {
         e "buffer.goto_end"
     }
 
+    // motions (arrow keys / nav cluster — same actions, ergonomic alias)
+    "<Left>" "cursor.left"
+    "<Down>" "cursor.down"
+    "<Up>" "cursor.up"
+    "<Right>" "cursor.right"
+    "<Home>" "cursor.line_start"
+    "<End>" "cursor.line_end"
+
     // mode transitions
     i "mode.insert"
     a "mode.insert_after"
@@ -45,6 +53,7 @@ keymap "normal" {
 
     // edits
     x "edit.delete_forward"
+    "<Delete>" "edit.delete_forward"
     d {
         d "edit.delete_line"
     }
@@ -63,12 +72,19 @@ keymap "normal" {
 // --- Insert mode ---
 // Most keys in insert mode are NOT bound here — they fall through to the
 // text-insertion default. Only the escape hatch and a few useful editing
-// keys are wired explicitly.
+// keys are wired explicitly. Arrow keys are bound here for ergonomics —
+// classic vi makes you Esc out to move, which is hostile for a beginner.
 keymap "insert" {
     "<Esc>" "mode.normal"
     "<Enter>" "edit.newline"
     "<Backspace>" "edit.backspace"
     "<Delete>" "edit.delete_forward"
+    "<Left>" "cursor.left"
+    "<Down>" "cursor.down"
+    "<Up>" "cursor.up"
+    "<Right>" "cursor.right"
+    "<Home>" "cursor.line_start"
+    "<End>" "cursor.line_end"
 }
 
 // --- Command-line mode ---

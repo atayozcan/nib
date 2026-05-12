@@ -160,6 +160,15 @@ pub(crate) struct KeyReader {
     parser: Parser,
     sink: EventSink,
     buf: [u8; 256],
+    /// Set when the previous read ended on a bare `0x1b` and vte has buffered
+    /// it pending follow-up bytes that may form an escape sequence. The next
+    /// `poll()` that reads zero bytes (i.e. the 100 ms VTIME window elapsed
+    /// with no input) flushes it as a synthetic [`Key::Escape`].
+    ///
+    /// Without this, a lone `Esc` keypress is invisible to the application:
+    /// vte stays in its `Escape` state forever, waiting for follow-up bytes
+    /// that will never arrive.
+    esc_pending: bool,
 }
 
 impl std::fmt::Debug for KeyReader {
@@ -174,6 +183,7 @@ impl KeyReader {
             parser: Parser::new(),
             sink: EventSink::default(),
             buf: [0u8; 256],
+            esc_pending: false,
         }
     }
 
@@ -186,10 +196,32 @@ impl KeyReader {
             Err(e) if e.kind() == io::ErrorKind::Interrupted => 0,
             Err(e) => return Err(e.into()),
         };
-        for &b in &self.buf[..n] {
-            self.parser.advance(&mut self.sink, &[b]);
+
+        if n == 0 {
+            // No new bytes within the read window — if vte is sitting on a
+            // bare ESC from the previous poll, finalize it now.
+            if self.esc_pending {
+                self.esc_pending = false;
+                // Reset the parser so the stuck `Escape` state doesn't merge
+                // with the next real keypress.
+                self.parser = Parser::new();
+                return Ok(vec![(Key::Escape, KeyMod::empty())]);
+            }
+            return Ok(Vec::new());
         }
-        Ok(std::mem::take(&mut self.sink.events))
+
+        self.esc_pending = false;
+        self.parser.advance(&mut self.sink, &self.buf[..n]);
+        let events = std::mem::take(&mut self.sink.events);
+
+        // If the read ended on a bare ESC byte and vte hasn't emitted anything
+        // (or emitted nothing involving the trailing ESC), arm the timeout
+        // flush for the next poll.
+        if self.buf[n - 1] == 0x1b {
+            self.esc_pending = true;
+        }
+
+        Ok(events)
     }
 }
 
